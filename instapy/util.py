@@ -81,11 +81,7 @@ def is_private_profile(browser, logger, following=True):
         # Get profile owner information
         shared_data = get_shared_data(browser)
 
-        # Sometimes shared_data["entry_data"]["ProfilePage"][0] is empty, but get_additional_data()
-        # fetches all data needed
-        get_key = shared_data.get("entry_data").get("ProfilePage")
-
-        if get_key:
+        if get_key := shared_data.get("entry_data").get("ProfilePage"):
             data = get_key[0]
         else:
             data = get_additional_data(browser)
@@ -93,10 +89,9 @@ def is_private_profile(browser, logger, following=True):
         is_private = data["graphql"]["user"]["is_private"]
 
         logger.info(
-            "Checked if '{}' is private, and it is: '{}'".format(
-                data["graphql"]["user"]["username"], is_private
-            )
+            f"""Checked if '{data["graphql"]["user"]["username"]}' is private, and it is: '{is_private}'"""
         )
+
 
     return is_private
 
@@ -107,8 +102,7 @@ def evaluate_mandatory_words(text, mandatory_words_list, level=0):
         # this is an "or" level so at least one of the words of compound sub-conditions should match
         for word in mandatory_words_list:
             if isinstance(word, list):
-                res = evaluate_mandatory_words(text, word, level + 1)
-                if res:
+                if res := evaluate_mandatory_words(text, word, level + 1):
                     return True
             elif word.lower() in text:
                 return True

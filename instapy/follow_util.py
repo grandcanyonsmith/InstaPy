@@ -32,21 +32,17 @@ def get_following_status(
 
     follow_button_XP = read_xpath(get_following_status.__name__, "follow_button_XP")
     failure_msg = "--> Unable to detect the following status of '{}'!"
-    user_inaccessible_msg = (
-        "Couldn't access the profile page of '{}'!\t~might have changed the"
-        " username".format(person)
-    )
+    user_inaccessible_msg = f"Couldn't access the profile page of '{person}'!\t~might have changed the username"
+
 
     # check if the page is available
     valid_page = is_page_available(browser, logger)
     if not valid_page:
         logger.warning(user_inaccessible_msg)
-        person_new = verify_username_by_id(
+        if person_new := verify_username_by_id(
             browser, username, person, None, logger, logfolder
-        )
-        if person_new:
-            ig_homepage = "https://www.instagram.com/"
-            web_address_navigator(browser, ig_homepage + person_new)
+        ):
+            web_address_navigator(browser, f"https://www.instagram.com/{person_new}")
             valid_page = is_page_available(browser, logger)
             if not valid_page:
                 logger.error(failure_msg.format(person_new.encode("utf-8")))
@@ -82,10 +78,10 @@ def get_following_status(
         follow_button = explicit_wait(
             browser, "VOEL", [follow_button_XP, "XPath"], logger, 14, False
         )
-        if not follow_button:
-            # cannot find the any of the expected buttons
-            logger.error(failure_msg.format(person.encode("utf-8")))
-            return None, None
+    if not follow_button:
+        # cannot find the any of the expected buttons
+        logger.error(failure_msg.format(person.encode("utf-8")))
+        return None, None
 
     # get follow status
     following_status = follow_button.text
@@ -108,12 +104,11 @@ def verify_username_by_id(browser, username, person, person_id, logger, logfolde
         # if person_new is None, inform the InstaPy user that record does not exist
         if person_new is not None and person_new != person:
             logger.info(
-                "User '{}' has changed username and now is called '{}' :S".format(
-                    person, person_new
-                )
+                f"User '{person}' has changed username and now is called '{person_new}' :S"
             )
+
             return person_new
 
     # check who call this def, since will receive a None value
-    logger.info("User '{}' doesn't exist in local records".format(person))
+    logger.info(f"User '{person}' doesn't exist in local records")
     return None

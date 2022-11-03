@@ -40,17 +40,16 @@ setup(
     maintainer="InstaPy Community at Github",
     license="GPLv3",
     url=project_homepage,
-    download_url=(project_homepage + "/archive/master.zip"),
+    download_url=f"{project_homepage}/archive/master.zip",
     project_urls={
-        "How Tos": (project_homepage + "/tree/master/docs"),
-        "Examples": (project_homepage + "/tree/master/quickstart_templates"),
-        "Bug Reports": (project_homepage + "/issues"),
+        "How Tos": f"{project_homepage}/tree/master/docs",
+        "Examples": f"{project_homepage}/tree/master/quickstart_templates",
+        "Bug Reports": f"{project_homepage}/issues",
         "Funding": "https://www.paypal.me/supportInstaPy",
         "Say Thanks!": "http://saythanks.io/to/uluQulu",
-        "Source": (project_homepage + "/tree/master/instapy"),
+        "Source": f"{project_homepage}/tree/master/instapy",
     },
     packages=["instapy"],
-    # include_package_data=True,  # <- packs every data file in the package
     package_data={  # we need only the files below:
         "instapy": [
             "icons/Windows/*.ico",

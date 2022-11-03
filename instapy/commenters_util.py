@@ -42,13 +42,12 @@ def check_exists_by_xpath(browser, xpath):
 
 def remove_duplicates_preserving_order(seq):
     seen = set()
-    seen_add = seen.add
-    return [x for x in seq if not (x in seen or seen_add(x))]
+    return [x for x in seq if x not in seen and not seen.add(x)]
 
 
 def extract_post_info(browser, logger):
     """Get the information from the current post"""
-    web_address_navigator(browser, browser.current_url + "comments/")
+    web_address_navigator(browser, f"{browser.current_url}comments/")
     comments = []
     user_commented_list = []
     last_comment_count = 0
@@ -90,7 +89,7 @@ def extract_post_info(browser, logger):
             user_commented = (
                 comm.find_element(By.TAG_NAME, "a").get_attribute("href").split("/")
             )
-            logger.info("Found commenter: {}".format(user_commented[3]))
+            logger.info(f"Found commenter: {user_commented[3]}")
             user_commented_list.append(user_commented[3])
 
     except Exception as e:
@@ -102,7 +101,7 @@ def extract_post_info(browser, logger):
 
 def extract_information(browser, username, daysold, max_pic, logger):
     """Get all the information for the given username"""
-    web_address_navigator(browser, "https://www.instagram.com/" + username)
+    web_address_navigator(browser, f"https://www.instagram.com/{username}")
 
     try:
         num_of_posts = get_number_of_posts(browser)
@@ -122,10 +121,9 @@ def extract_information(browser, username, daysold, max_pic, logger):
 
     except Exception as e:
         logger.error(
-            "Error: Couldn't get user profile. Moving on... \n\t{}".format(
-                str(e).encode("utf-8")
-            )
+            f"""Error: Couldn't get user profile. Moving on... \n\t{str(e).encode("utf-8")}"""
         )
+
         return []
 
     # PROFILE SCROLLING AND HARVESTING LINKS
@@ -145,12 +143,13 @@ def extract_information(browser, username, daysold, max_pic, logger):
             # harvesting current img links:
             links_elems = [div.find_elements(By.TAG_NAME, "a") for div in prev_divs]
             links1 = sum(
-                [
+                (
                     [link_elem.get_attribute("href") for link_elem in elems]
                     for elems in links_elems
-                ],
+                ),
                 [],
             )
+
             # saving links for later:
             for link in links1:
                 if "/p/" in link:
@@ -220,7 +219,7 @@ def extract_information(browser, username, daysold, max_pic, logger):
                     )
                     click_element(browser, close_overlay)
 
-                    logger.info("Date of this picture was: {}".format(date_of_pic))
+                    logger.info(f"Date of this picture was: {date_of_pic}")
 
                     if date_of_pic < pastdate:
                         logger.info("Finished scrolling, too old photos...")
@@ -237,9 +236,9 @@ def extract_information(browser, username, daysold, max_pic, logger):
 
     except (NoSuchElementException, StaleElementReferenceException) as e:
         logger.warning(
-            "- Something went terribly wrong\n - Stopping everything and "
-            "moving on with what I have. \n\t{}".format(str(e).encode("utf-8"))
+            f'- Something went terribly wrong\n - Stopping everything and moving on with what I have. \n\t{str(e).encode("utf-8")}'
         )
+
 
     links4 = remove_duplicates_preserving_order(links3)
 
@@ -252,9 +251,9 @@ def extract_information(browser, username, daysold, max_pic, logger):
         if max_pic <= 0:
             break
         max_pic -= 1
-        logger.info("{} of max {} --- {} to go.".format(counter, len(links4), max_pic))
+        logger.info(f"{counter} of max {len(links4)} --- {max_pic} to go.")
         counter = counter + 1
-        logger.info("Scrapping link: {}".format(link))
+        logger.info(f"Scrapping link: {link}")
 
         try:
             web_address_navigator(browser, link)
@@ -264,7 +263,7 @@ def extract_information(browser, username, daysold, max_pic, logger):
             # stop if date older than daysago
             pastdate = datetime.now() - timedelta(days=daysold)
             date_of_pic = datetime.strptime(pic_date_time, "%Y-%m-%dT%H:%M:%S.%fZ")
-            logger.info("Date of pic: {}".format(date_of_pic))
+            logger.info(f"Date of pic: {date_of_pic}")
 
             if date_of_pic > pastdate:
                 logger.info("Recent pic, continue...")
@@ -275,10 +274,9 @@ def extract_information(browser, username, daysold, max_pic, logger):
             sleep(1)
         except NoSuchElementException as e:
             logger.error(
-                "- Could not get information from post: {} \n\t{}".format(
-                    link, str(e).encode("utf-8")
-                )
+                f'- Could not get information from post: {link} \n\t{str(e).encode("utf-8")}'
             )
+
 
     # PREPARE THE USER LIST TO EXPORT
     # sorts the list by frequencies, so users who comment the most are at
@@ -301,10 +299,9 @@ def extract_information(browser, username, daysold, max_pic, logger):
             last = user_commented_total_list[index]
 
     logger.info(
-        "Getting list of users who commented on this profile finished: {}".format(
-            user_commented_list
-        )
+        f"Getting list of users who commented on this profile finished: {user_commented_list}"
     )
+
     return user_commented_list
 
 
@@ -316,10 +313,9 @@ def users_liked(browser, photo_url, amount=100, logger=None):
         sleep(2)
     except NoSuchElementException:
         logger.info(
-            "Could not get information from post: {} nothing to return".format(
-                photo_url
-            )
+            f"Could not get information from post: {photo_url} nothing to return"
         )
+
 
     return photo_likers
 
@@ -342,11 +338,7 @@ def likers_from_photo(browser, amount=20, logger=None):
             liked_this = browser.find_elements(
                 By.XPATH, read_xpath(likers_from_photo.__name__, "liked_counter_button")
             )
-            likers = []
-
-            for liker in liked_this:
-                if " like this" not in liker.text:
-                    likers.append(liker.text)
+            likers = [liker.text for liker in liked_this if " like this" not in liker.text]
 
             if " others" in liked_this[-1].text:
                 element_to_click = liked_this[-1]
@@ -356,9 +348,9 @@ def likers_from_photo(browser, amount=20, logger=None):
 
             else:
                 logger.info(
-                    "Few likes, not guaranteed you don't follow these"
-                    " likers already.\nGot photo likers: {}".format(likers)
+                    f"Few likes, not guaranteed you don't follow these likers already.\nGot photo likers: {likers}"
                 )
+
                 return likers
 
         else:
@@ -424,14 +416,13 @@ def likers_from_photo(browser, amount=20, logger=None):
         close_dialog_box(browser)
 
         logger.info(
-            "Got {} likers shuffled randomly whom you can follow:\n{}".format(
-                len(user_list), user_list
-            )
+            f"Got {len(user_list)} likers shuffled randomly whom you can follow:\n{user_list}"
         )
+
         return user_list
 
     except Exception as exc:
-        logger.warning("Some problem occurred! \n\t{}".format(str(exc).encode("utf-8")))
+        logger.warning(f'Some problem occurred! \n\t{str(exc).encode("utf-8")}')
         return []
 
 
@@ -441,9 +432,9 @@ def get_photo_urls_from_profile(
     # try:
     # input can be both username or user profile url
     username = username_url_to_username(username)
-    logger.info("Getting likers from user: {}".format(username))
+    logger.info(f"Getting likers from user: {username}")
 
-    web_address_navigator(browser, "https://www.instagram.com/" + username + "/")
+    web_address_navigator(browser, f"https://www.instagram.com/{username}/")
     sleep(1)
 
     photos_a_elems = browser.find_elements(
@@ -462,12 +453,9 @@ def get_photo_urls_from_profile(
         random.shuffle(links)
 
     logger.info(
-        "Got {} , returning {} links: {}".format(
-            len(links),
-            min(links_to_return_amount, len(links)),
-            links[:links_to_return_amount],
-        )
+        f"Got {len(links)} , returning {min(links_to_return_amount, len(links))} links: {links[:links_to_return_amount]}"
     )
+
 
     sleep(1)
     return links[:links_to_return_amount]

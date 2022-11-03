@@ -27,16 +27,14 @@ from selenium.common.exceptions import UnexpectedAlertPresentException
 
 
 def get_geckodriver():
-    # prefer using geckodriver from path
-    gecko_path = shutil.which("geckodriver") or shutil.which("geckodriver.exe")
-    if gecko_path:
+    if gecko_path := shutil.which("geckodriver") or shutil.which(
+        "geckodriver.exe"
+    ):
         return gecko_path
 
     asset_path = use_assets()
     gdd = GeckoDriverDownloader(asset_path, asset_path)
-    # skips download if already downloaded
-    sym_path = gdd.download_and_install()[1]
-    return sym_path
+    return gdd.download_and_install()[1]
 
 
 def create_firefox_extension():
@@ -116,7 +114,7 @@ def set_selenium_local_session(
     firefox_profile.update_preferences()
 
     # geckodriver log in specific user logfolder
-    geckodriver_log = "{}geckodriver.log".format(logfolder)
+    geckodriver_log = f"{logfolder}geckodriver.log"
 
     # prefer user path before downloaded one
     driver_path = geckodriver_path or get_geckodriver()
@@ -145,9 +143,9 @@ def set_selenium_local_session(
         browser.set_window_size(414, 896)
     except UnexpectedAlertPresentException as exc:
         logger.exception(
-            "Unexpected alert on resizing web browser!\n\t"
-            "{}".format(str(exc).encode("utf-8"))
+            f'Unexpected alert on resizing web browser!\n\t{str(exc).encode("utf-8")}'
         )
+
         close_browser(browser, False, logger)
         return browser, "Unexpected alert on browser resize"
 
@@ -190,9 +188,9 @@ def close_browser(browser, threaded_session, logger):
         except Exception as exc:
             if isinstance(exc, WebDriverException):
                 logger.exception(
-                    "Error occurred while deleting cookies "
-                    "from web browser!\n\t{}".format(str(exc).encode("utf-8"))
+                    f'Error occurred while deleting cookies from web browser!\n\t{str(exc).encode("utf-8")}'
                 )
+
 
         # close web browser
         try:
@@ -200,8 +198,7 @@ def close_browser(browser, threaded_session, logger):
         except Exception as exc:
             if isinstance(exc, WebDriverException):
                 logger.exception(
-                    "Error occurred while "
-                    "closing web browser!\n\t{}".format(str(exc).encode("utf-8"))
+                    f'Error occurred while closing web browser!\n\t{str(exc).encode("utf-8")}'
                 )
 
 
@@ -277,12 +274,11 @@ class custom_browser(Remote):
 
     def find_element_by_xpath(self, *args, **kwargs):
         """example usage of hooking into built in functions"""
-        rv = super(custom_browser, self).find_element_by_xpath(*args, **kwargs)
-        return rv
+        return super(custom_browser, self).find_element_by_xpath(*args, **kwargs)
 
     def wait_for_valid_connection(self, username, logger):
         counter = 0
-        while True and counter < 10:
+        while counter < 10:
             sirens_wailing, emergency_state = emergency_exit(self, username, logger)
             if sirens_wailing and emergency_state == "not connected":
                 logger.warning("there is no valid connection")
@@ -298,7 +294,7 @@ class custom_browser(Remote):
         # stuck on invalid auth
         auth_method = "activity counts"
         counter = 0
-        while True and counter < 10:
+        while counter < 10:
             login_state = check_authorization(self, username, auth_method, logger)
             if login_state is False:
                 logger.warning("not logged in")

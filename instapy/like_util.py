@@ -52,7 +52,7 @@ def get_links_from_feed(browser, amount, num_of_search, logger):
     # navigate to it again
     web_address_navigator(browser, feeds_link)
 
-    for i in range(num_of_search + 1):
+    for _ in range(num_of_search + 1):
         browser.execute_script("window.scrollTo(0, document.body.scrollHeight);")
         update_activity(browser, state=None)
         sleep(2)
@@ -63,7 +63,7 @@ def get_links_from_feed(browser, amount, num_of_search, logger):
     )
 
     total_links = len(link_elems)
-    logger.info("Total of links feched for analysis: {}".format(total_links))
+    logger.info(f"Total of links feched for analysis: {total_links}")
     links = []
     try:
         if link_elems:
@@ -74,7 +74,7 @@ def get_links_from_feed(browser, amount, num_of_search, logger):
             logger.info("~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
     except BaseException as e:
-        logger.error("link_elems error \n\t{}".format(str(e).encode("utf-8")))
+        logger.error(f'link_elems error \n\t{str(e).encode("utf-8")}')
 
     return links
 
@@ -83,18 +83,20 @@ def get_main_element(browser, link_elems, skip_top_posts):
     main_elem = None
 
     if not link_elems:
-        main_elem = browser.find_element(
-            By.XPATH, read_xpath(get_links_for_location.__name__, "top_elements")
+        return browser.find_element(
+            By.XPATH,
+            read_xpath(get_links_for_location.__name__, "top_elements"),
         )
-    else:
-        if skip_top_posts:
-            main_elem = browser.find_element(
-                By.XPATH, read_xpath(get_links_for_location.__name__, "main_elem")
-            )
-        else:
-            main_elem = browser.find_element(By.TAG_NAME, "main")
 
-    return main_elem
+    else:
+        return (
+            browser.find_element(
+                By.XPATH,
+                read_xpath(get_links_for_location.__name__, "main_elem"),
+            )
+            if skip_top_posts
+            else browser.find_element(By.TAG_NAME, "main")
+        )
 
 
 def get_links_for_location(
@@ -114,7 +116,7 @@ def get_links_for_location(
         # Make it an array to use it in the following part
         media = [media]
 
-    location_link = "https://www.instagram.com/explore/locations/{}".format(location)
+    location_link = f"https://www.instagram.com/explore/locations/{location}"
     web_address_navigator(browser, location_link)
 
     top_elements = browser.find_element(
@@ -149,29 +151,27 @@ def get_links_for_location(
 
     except WebDriverException:
         logger.info(
-            "Failed to get the amount of possible posts in '{}' "
-            "location".format(location)
+            f"Failed to get the amount of possible posts in '{location}' location"
         )
+
         possible_posts = None
 
     logger.info(
-        "desired amount: {}  |  top posts [{}]: {}  |  possible posts: "
-        "{}".format(
-            amount,
-            "enabled" if not skip_top_posts else "disabled",
-            len(top_posts),
-            possible_posts,
-        )
+        f'desired amount: {amount}  |  top posts [{"disabled" if skip_top_posts else "enabled"}]: {len(top_posts)}  |  possible posts: {possible_posts}'
     )
+
 
     if possible_posts is not None:
         possible_posts = (
-            possible_posts if not skip_top_posts else possible_posts - len(top_posts)
+            possible_posts - len(top_posts)
+            if skip_top_posts
+            else possible_posts
         )
+
         amount = possible_posts if amount > possible_posts else amount
-        # sometimes pages do not have the correct amount of posts as it is
-        # written there, it may be cos of some posts is deleted but still
-        # keeps counted for the location
+            # sometimes pages do not have the correct amount of posts as it is
+            # written there, it may be cos of some posts is deleted but still
+            # keeps counted for the location
 
     # Get links
     links = get_links(browser, location, logger, media, main_elem)
@@ -187,16 +187,13 @@ def get_links_for_location(
                 sleep(600)
                 sc_rolled = 0
 
-            for i in range(3):
+            for _ in range(3):
                 browser.execute_script(
                     "window.scrollTo(0, document.body.scrollHeight);"
                 )
                 update_activity(browser, state=None)
                 sc_rolled += 1
                 sleep(nap)  # if not slept, and internet speed is low,
-                # instagram will only scroll one time, instead of many times
-                # you sent scroll command...
-
             sleep(3)
             links.extend(get_links(browser, location, logger, media, main_elem))
 
@@ -211,13 +208,10 @@ def get_links_for_location(
             if len(links) == filtered_links:
                 try_again += 1
                 nap = 3 if try_again == 1 else 5
-                logger.info(
-                    "Insufficient amount of links ~ trying again: {}".format(try_again)
-                )
+                logger.info(f"Insufficient amount of links ~ trying again: {try_again}")
                 sleep(3)
 
-                if try_again > 2:  # you can try again as much as you want
-                    # by changing this number
+                if try_again > 2:
                     if put_sleep < 1 and filtered_links <= 21:
                         logger.info(
                             "Cor! Did you send too many requests?  ~let's rest some"
@@ -235,11 +229,9 @@ def get_links_for_location(
                         )
                     else:
                         logger.info(
-                            "'{}' location POSSIBLY has less images than "
-                            "desired:{} found:{}...".format(
-                                location, amount, len(links)
-                            )
+                            f"'{location}' location POSSIBLY has less images than desired:{amount} found:{len(links)}..."
                         )
+
                         break
             else:
                 filtered_links = len(links)
@@ -270,7 +262,7 @@ def get_links_for_tag(browser, tag, amount, skip_top_posts, randomize, media, lo
 
     tag = tag[1:] if tag[:1] == "#" else tag
 
-    tag_link = "https://www.instagram.com/explore/tags/{}".format(tag)
+    tag_link = f"https://www.instagram.com/explore/tags/{tag}"
     web_address_navigator(browser, tag_link)
 
     top_elements = browser.find_element(
@@ -312,29 +304,22 @@ def get_links_for_tag(browser, tag, amount, skip_top_posts, randomize, media, lo
 
             else:
                 logger.info(
-                    "Failed to get the amount of possible posts in '{}' tag  "
-                    "~empty string".format(tag)
+                    f"Failed to get the amount of possible posts in '{tag}' tag  ~empty string"
                 )
+
                 possible_posts = None
 
         except NoSuchElementException:
-            logger.info(
-                "Failed to get the amount of possible posts in {} tag".format(tag)
-            )
+            logger.info(f"Failed to get the amount of possible posts in {tag} tag")
             possible_posts = None
 
     if skip_top_posts:
         amount = amount + 9
 
     logger.info(
-        "desired amount: {}  |  top posts [{}]: {}  |  possible posts: "
-        "{}".format(
-            amount,
-            "enabled" if not skip_top_posts else "disabled",
-            len(top_posts),
-            possible_posts,
-        )
+        f'desired amount: {amount}  |  top posts [{"disabled" if skip_top_posts else "enabled"}]: {len(top_posts)}  |  possible posts: {possible_posts}'
     )
+
 
     if possible_posts is not None:
         amount = possible_posts if amount > possible_posts else amount
@@ -356,16 +341,13 @@ def get_links_for_tag(browser, tag, amount, skip_top_posts, randomize, media, lo
                 sleep(600)
                 sc_rolled = 0
 
-            for i in range(3):
+            for _ in range(3):
                 browser.execute_script(
                     "window.scrollTo(0, document.body.scrollHeight);"
                 )
                 update_activity(browser, state=None)
                 sc_rolled += 1
                 sleep(nap)  # if not slept, and internet speed is low,
-                # instagram will only scroll one time, instead of many times
-                # you sent scroll command...
-
             sleep(3)
             links.extend(get_links(browser, tag, logger, media, main_elem))
 
@@ -380,13 +362,10 @@ def get_links_for_tag(browser, tag, amount, skip_top_posts, randomize, media, lo
             if len(links) == filtered_links:
                 try_again += 1
                 nap = 3 if try_again == 1 else 5
-                logger.info(
-                    "Insufficient amount of links ~ trying again: {}".format(try_again)
-                )
+                logger.info(f"Insufficient amount of links ~ trying again: {try_again}")
                 sleep(3)
 
-                if try_again > 2:  # you can try again as much as you want
-                    # by changing this number
+                if try_again > 2:
                     if put_sleep < 1 and filtered_links <= 21:
                         logger.info(
                             "Cor! Did you send too many requests?  ~let's rest some"
@@ -404,9 +383,9 @@ def get_links_for_tag(browser, tag, amount, skip_top_posts, randomize, media, lo
                         )
                     else:
                         logger.info(
-                            "'{}' tag POSSIBLY has less images than "
-                            "desired:{} found:{}...".format(tag, amount, len(links))
+                            f"'{tag}' tag POSSIBLY has less images than desired:{amount} found:{len(links)}..."
                         )
+
                         break
             else:
                 filtered_links = len(links)
@@ -418,7 +397,7 @@ def get_links_for_tag(browser, tag, amount, skip_top_posts, randomize, media, lo
     sleep(4)
 
     if skip_top_posts:
-        del links[0:9]
+        del links[:9]
 
     if randomize is True:
         random.shuffle(links)

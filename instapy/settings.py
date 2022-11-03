@@ -22,12 +22,7 @@ OS_ENV = (
 def localize_path(*args):
     """Join given locations as an OS path"""
 
-    if WORKSPACE["path"]:
-        path = join_path(WORKSPACE["path"], *args)
-        return path
-
-    else:
-        return None
+    return join_path(WORKSPACE["path"], *args) if WORKSPACE["path"] else None
 
 
 class Settings:

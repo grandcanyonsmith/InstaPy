@@ -58,7 +58,7 @@ def get_story_data(browser, elem, action_type, logger, simulate=False):
                 )
                 return {"status": "not_ok", "reels_cnt": 0}
     else:
-        reel_id = "tag:{}".format(elem)
+        reel_id = f"tag:{elem}"
 
     graphql_query_url = (
         "https://www.instagram.com/graphql/query/?query_hash={}"
@@ -84,7 +84,7 @@ def get_story_data(browser, elem, action_type, logger, simulate=False):
         }
         if cookie["name"] == "csrftoken":
             csrftoken = cookie["value"]
-        if not (cookie["name"] == "urlgen") and not (cookie["name"] == "rur"):
+        if cookie["name"] not in ["urlgen", "rur"]:
             all_args["expires"] = cookie["expiry"]
 
         session.cookies.set(**all_args)
@@ -100,90 +100,81 @@ def get_story_data(browser, elem, action_type, logger, simulate=False):
     update_activity(browser, state=None)
 
     reels_cnt = 0
-    if response["status"] == "ok":
-        # we got a correct response from the server
-        # check how many reels we got
-        media_cnt = len(response["data"]["reels_media"])
-
-        if media_cnt == 0:
-            # then nothing to watch, we received no stories
-            return {"status": "ok", "reels_cnt": 0}
-        else:
-            # we got content
-            # check if there is something new to watch otherwise we just return 0
-            seen = 0
-            if (action_type != "tag") and (
-                response["data"]["reels_media"][0]["seen"] is not None
-            ):
-                seen = response["data"]["reels_media"][0]["seen"]
-            index = 1
-            if simulate is True:
-                for item in response["data"]["reels_media"][0]["items"]:
-                    if item["taken_at_timestamp"] <= seen:
-                        continue
-                    else:
-                        headers = {
-                            "User-Agent": Settings.user_agent,
-                            "X-CSRFToken": csrftoken,
-                            "X-Requested-With": "XMLHttpRequest",
-                            "Content-Type": "application/x-www-form-urlencoded",
-                            "SameSite": "Strict",
-                        }
-                        response = session.post(
-                            "https://www.instagram.com/stories/reel/seen",
-                            data={
-                                "reelMediaId": item["id"],
-                                "reelMediaOwnerId": item["owner"]["id"],
-                                "reelId": reel_id,
-                                "reelMediaTakenAt": item["taken_at_timestamp"],
-                                "viewSeenAt": math.floor(time.time()),
-                            },
-                            headers=headers,
-                        )
-                        logger.info("  --> simulated watch reel # {}".format(index))
-                        update_activity()
-                        index += 1
-                        time.sleep(randint(3, 6))
-                        reels_cnt += 1
-            else:
-                story_elem = browser.find_element(
-                    By.XPATH,
-                    read_xpath(
-                        watch_story.__name__ + "_for_{}".format(action_type),
-                        "explore_stories",
-                    ),
-                )
-
-                click_element(browser, story_elem)
-
-                logger.info("Watching stories...")
-                for item in response["data"]["reels_media"][0]["items"]:
-                    if item["taken_at_timestamp"] <= seen:
-                        continue
-                    else:
-                        time.sleep(2)
-                        if index == 1:
-                            try:
-                                next_elem = browser.find_element(
-                                    By.XPATH,
-                                    read_xpath(watch_story.__name__, "next_first"),
-                                )
-                            except NoSuchElementException:
-                                continue
-                        else:
-                            try:
-                                next_elem = browser.find_element(
-                                    By.XPATH, read_xpath(watch_story.__name__, "next")
-                                )
-                            except NoSuchElementException:
-                                continue
-                        click_element(browser, next_elem)
-                        reels_cnt += 1
-                        index += 1
-
-            return {"status": "ok", "reels_cnt": reels_cnt}
-    else:
+    if response["status"] != "ok":
         return {"status": "not_ok", "reels_cnt": 0}
+    # we got a correct response from the server
+    # check how many reels we got
+    media_cnt = len(response["data"]["reels_media"])
+
+    if media_cnt == 0:
+        # then nothing to watch, we received no stories
+        return {"status": "ok", "reels_cnt": 0}
+    # we got content
+    # check if there is something new to watch otherwise we just return 0
+    seen = 0
+    if (action_type != "tag") and (
+        response["data"]["reels_media"][0]["seen"] is not None
+    ):
+        seen = response["data"]["reels_media"][0]["seen"]
+    index = 1
+    if simulate is True:
+        for item in response["data"]["reels_media"][0]["items"]:
+            if item["taken_at_timestamp"] > seen:
+                headers = {
+                    "User-Agent": Settings.user_agent,
+                    "X-CSRFToken": csrftoken,
+                    "X-Requested-With": "XMLHttpRequest",
+                    "Content-Type": "application/x-www-form-urlencoded",
+                    "SameSite": "Strict",
+                }
+                response = session.post(
+                    "https://www.instagram.com/stories/reel/seen",
+                    data={
+                        "reelMediaId": item["id"],
+                        "reelMediaOwnerId": item["owner"]["id"],
+                        "reelId": reel_id,
+                        "reelMediaTakenAt": item["taken_at_timestamp"],
+                        "viewSeenAt": math.floor(time.time()),
+                    },
+                    headers=headers,
+                )
+                logger.info(f"  --> simulated watch reel # {index}")
+                update_activity()
+                index += 1
+                time.sleep(randint(3, 6))
+                reels_cnt += 1
+    else:
+        story_elem = browser.find_element(
+            By.XPATH,
+            read_xpath(
+                f"{watch_story.__name__}_for_{action_type}", "explore_stories"
+            ),
+        )
+
+
+        click_element(browser, story_elem)
+
+        logger.info("Watching stories...")
+        for item in response["data"]["reels_media"][0]["items"]:
+            if item["taken_at_timestamp"] > seen:
+                time.sleep(2)
+                try:
+                    if index == 1:
+                        next_elem = browser.find_element(
+                            By.XPATH,
+                            read_xpath(watch_story.__name__, "next_first"),
+                        )
+                    else:
+                        next_elem = browser.find_element(
+                            By.XPATH, read_xpath(watch_story.__name__, "next")
+                        )
+                except NoSuchElementException:
+                    continue
+                click_element(browser, next_elem)
+                reels_cnt += 1
+                index += 1
+
+    return {"status": "ok", "reels_cnt": reels_cnt}
 
 
 def watch_story(browser, elem, logger, action_type, simulate=False):
@@ -196,10 +187,10 @@ def watch_story(browser, elem, logger, action_type, simulate=False):
     elem = elem.lower()
 
     if action_type == "tag":
-        story_link = "https://www.instagram.com/explore/tags/{}".format(elem)
+        story_link = f"https://www.instagram.com/explore/tags/{elem}"
 
     else:
-        story_link = "https://www.instagram.com/{}".format(elem)
+        story_link = f"https://www.instagram.com/{elem}"
 
     web_address_navigator(browser, story_link)
     # wait for the page to load
@@ -218,10 +209,9 @@ def watch_story(browser, elem, logger, action_type, simulate=False):
         return 0
 
     logger.info(
-        "Watched {} reels from {}: {}".format(
-            story_data["reels_cnt"], action_type, elem.encode("utf-8")
-        )
+        f'Watched {story_data["reels_cnt"]} reels from {action_type}: {elem.encode("utf-8")}'
     )
+
 
     # get the post-story delay time to sleep
     naply = get_action_delay("story")

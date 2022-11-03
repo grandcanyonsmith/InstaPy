@@ -22,7 +22,7 @@ def use_workspace():
 
 def use_assets():
     """Get asset folder"""
-    assets_path = "{}{}assets".format(use_workspace(), native_slash)
+    assets_path = f"{use_workspace()}{native_slash}assets"
     validate_path(assets_path)
     return assets_path
 
@@ -35,9 +35,9 @@ def get_workspace():
 
     else:
         home_dir = get_home_path()
-        workspace = "{}/{}".format(home_dir, WORKSPACE["name"])
+        workspace = f'{home_dir}/{WORKSPACE["name"]}'
 
-    message = 'Workspace in use: "{}"'.format(workspace)
+    message = f'Workspace in use: "{workspace}"'
     highlight_print(
         Settings.profile["name"], message, "workspace", "info", Settings.logger
     )
@@ -52,43 +52,27 @@ def set_workspace(path=None):
     if not Settings.InstaPy_is_running:
         if path:
             path = verify_workspace_name(path)
-            workspace_is_new = differ_paths(WORKSPACE["path"], path)
-            if workspace_is_new:
+            if workspace_is_new := differ_paths(WORKSPACE["path"], path):
                 update_workspace(path)
                 update_locations()
-                message = 'Custom workspace set: "{}" :]'.format(path)
-                highlight_print(
-                    Settings.profile["name"],
-                    message,
-                    "workspace",
-                    "info",
-                    Settings.logger,
-                )
-
+                message = f'Custom workspace set: "{path}" :]'
             else:
                 message = "Given workspace path is identical as current :/"
-                highlight_print(
-                    Settings.profile["name"],
-                    message,
-                    "workspace",
-                    "info",
-                    Settings.logger,
-                )
-
         else:
             message = "No any custom workspace provided.\t~using existing.."
-            highlight_print(
-                Settings.profile["name"], message, "workspace", "info", Settings.logger
-            )
-
     else:
         message = (
             "Sorry! You can't change workspace after"
             " InstaPy has started :>\t~using existing.."
         )
-        highlight_print(
-            Settings.profile["name"], message, "workspace", "info", Settings.logger
-        )
+
+    highlight_print(
+        Settings.profile["name"],
+        message,
+        "workspace",
+        "info",
+        Settings.logger,
+    )
 
 
 def update_workspace(latest_path):
@@ -171,7 +155,7 @@ def verify_workspace_name(path):
 
     if default_workspace_name not in custom_workspace_name:
         if default_workspace_name.lower() not in custom_workspace_name.lower():
-            path += "/{}".format(default_workspace_name)
+            path += f"/{default_workspace_name}"
         else:
             nicer_name = custom_workspace_name.lower().replace(
                 default_workspace_name.lower(), default_workspace_name
@@ -204,9 +188,8 @@ def validate_path(path):
 
         except OSError as exc:
             exc_name = type(exc).__name__
-            msg = '{} occurred while making "{}" path!' "\n\t{}".format(
-                exc_name, path, str(exc).encode("utf-8")
-            )
+            msg = f'{exc_name} occurred while making "{path}" path!\n\t{str(exc).encode("utf-8")}'
+
             raise InstaPyError(msg)
 
 

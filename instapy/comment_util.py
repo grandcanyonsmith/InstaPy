@@ -139,7 +139,7 @@ def comment_image(browser, username, comments, blacklist, logger, logfolder):
     except WebDriverException as ex:
         logger.error(ex)
 
-    logger.info("--> Commented: {}".format(rand_comment.encode("utf-8")))
+    logger.info(f'--> Commented: {rand_comment.encode("utf-8")}')
     Event().commented(username)
 
     # get the post-comment delay time to sleep
@@ -157,24 +157,22 @@ def verify_commenting(browser, maximum, minimum, logger):
 
     commenting_state, msg = is_commenting_enabled(browser, logger)
     if commenting_state is not True:
-        disapproval_reason = "--> Not commenting! {}".format(msg)
+        disapproval_reason = f"--> Not commenting! {msg}"
         return False, disapproval_reason
 
     comments_count, msg = get_comments_count(browser, logger)
     if comments_count is None:
-        disapproval_reason = "--> Not commenting! {}".format(msg)
+        disapproval_reason = f"--> Not commenting! {msg}"
         return False, disapproval_reason
 
     if maximum is not None and comments_count > maximum:
-        disapproval_reason = "Not commented on this post! ~more comments exist off maximum limit at {}".format(
-            comments_count
-        )
+        disapproval_reason = f"Not commented on this post! ~more comments exist off maximum limit at {comments_count}"
+
         return False, disapproval_reason
 
     elif minimum is not None and comments_count < minimum:
-        disapproval_reason = "Not commented on this post! ~less comments exist off minimum limit at {}".format(
-            comments_count
-        )
+        disapproval_reason = f"Not commented on this post! ~less comments exist off minimum limit at {comments_count}"
+
         return False, disapproval_reason
 
     return True, "Approval"
@@ -214,25 +212,27 @@ def verify_mandatory_words(
             else ""
         )
 
-        if len(mand_words) > 0:
-            if not evaluate_mandatory_words(text, mand_words):
-                return False, [], "mandatory words not in post desc"
+    if len(mand_words) > 0 and not evaluate_mandatory_words(text, mand_words):
+        return False, [], "mandatory words not in post desc"
 
-        if isinstance(comments[0], dict):
-            # The comments definition is a compound definition of conditions and comments
-            for compund_comment in comments:
+    if isinstance(comments[0], dict):
+        return next(
+            (
+                (True, compund_comment["comments"], "Approval")
+                for compund_comment in comments
                 if (
                     "mandatory_words" not in compund_comment
                     or evaluate_mandatory_words(
                         text, compund_comment["mandatory_words"]
                     )
-                ):
-                    return True, compund_comment["comments"], "Approval"
-            return (
+                )
+            ),
+            (
                 False,
                 [],
                 "Coulnd't match the mandatory words in any comment definition",
-            )
+            ),
+        )
 
     return True, comments, "Approval"
 
@@ -272,11 +272,9 @@ def get_comments_on_post(
     explicit_wait(browser, "PFL", [], logger, 10)
 
     try:
-        all_comment_like_buttons = browser.find_elements(
+        if all_comment_like_buttons := browser.find_elements(
             By.XPATH, like_button_full_XPath
-        )
-
-        if all_comment_like_buttons:
+        ):
             commenter = None
             comment = None
 
@@ -297,16 +295,13 @@ def get_comments_on_post(
                     logger.info("Could not grab any commenter from this post")
 
         else:
-            comment_unlike_buttons = browser.find_elements(
+            if comment_unlike_buttons := browser.find_elements(
                 By.XPATH, unlike_button_full_XPath
-            )
-
-            if comment_unlike_buttons:
+            ):
                 logger.info(
-                    "Grabbed {} comment(s) on this post and already liked.".format(
-                        len(comment_unlike_buttons)
-                    )
+                    f"Grabbed {len(comment_unlike_buttons)} comment(s) on this post and already liked."
                 )
+
             else:
                 logger.info("There are no any comments available on this post.")
             return None
@@ -325,10 +320,9 @@ def get_comments_on_post(
             random.shuffle(comment_data)
 
         logger.info(
-            "Grabbed only {} usable comment(s) from this post...".format(
-                len(comment_data)
-            )
+            f"Grabbed only {len(comment_data)} usable comment(s) from this post..."
         )
+
 
         return comment_data
 
@@ -369,11 +363,7 @@ def verify_commented_image(browser, link, owner, logger):
             comment = value["node"]["text"]
 
             if commenter and commenter == owner:
-                message = (
-                    "--> The post has already been commented on before: '{}'".format(
-                        comment
-                    )
-                )
+                message = f"--> The post has already been commented on before: '{comment}'"
                 return True, message
 
     except NoSuchElementException:
@@ -464,7 +454,7 @@ def process_comments(
         )
 
         # Return to the target uset page
-        user_link = "https://www.instagram.com/{}/".format(user_name)
+        user_link = f"https://www.instagram.com/{user_name}/"
         web_address_navigator(browser, user_link)
 
         return comment_state

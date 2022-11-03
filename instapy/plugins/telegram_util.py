@@ -60,9 +60,7 @@ class InstaPyTelegramBot:
         # see if we have a pre-existing chat_id from another run
         if self.instapy_session is not None:
             try:
-                telegramfile = open(
-                    "{}telegram_chat_id.txt".format(self.instapy_session.logfolder)
-                )
+                telegramfile = open(f"{self.instapy_session.logfolder}telegram_chat_id.txt")
             except OSError:
                 self.__chat_id = None
             else:
@@ -173,7 +171,7 @@ class InstaPyTelegramBot:
         :param session: the instapy session
         :return:
         """
-        os.remove("{}telegram_chat_id.txt".format(session.logfolder))
+        os.remove(f"{session.logfolder}telegram_chat_id.txt")
 
     def _start(self, update, context):
         """
@@ -184,9 +182,7 @@ class InstaPyTelegramBot:
         """
         self.__chat_id = update.message.chat_id
         if self._check_authorized(update, context):
-            with open(
-                "{}telegram_chat_id.txt".format(self.instapy_session.logfolder), "w"
-            ) as telegramfile:
+            with open(f"{self.instapy_session.logfolder}telegram_chat_id.txt", "w") as telegramfile:
                 telegramfile.write(str(self.__chat_id))
 
             context.bot.send_message(
@@ -246,9 +242,7 @@ class InstaPyTelegramBot:
         :return:
         """
         if update.message.from_user.username != self.telegram_username:
-            self.__logger.warning(
-                "unauthorized access from {}".format(update.message.from_user)
-            )
+            self.__logger.warning(f"unauthorized access from {update.message.from_user}")
             context.bot.send_message(
                 chat_id=update.message.chat_id,
                 text="You are not authorized to use this service \n",
@@ -263,9 +257,7 @@ class InstaPyTelegramBot:
         will respond 409
         :return:
         """
-        r = requests.get(
-            "https://api.telegram.org/bot{}/deleteWebhook".format(self.token)
-        )
+        r = requests.get(f"https://api.telegram.org/bot{self.token}/deleteWebhook")
 
         if r.json()["ok"] is not True:
             self.__logger.warning("unable to remove webhook! Wrong token?")
@@ -273,22 +265,19 @@ class InstaPyTelegramBot:
     def _error_callback(self, update, error):
         try:
             raise error
-        except Unauthorized:
-            self.__logger.warning("TELEGRAM ERROR {} update={}".format(error, update))
-        except BadRequest:
-            # handle malformed requests - read more below!
-            self.__logger.warning("TELEGRAM ERROR {} update={}".format(error, update))
+        except (Unauthorized, BadRequest):
+            self.__logger.warning(f"TELEGRAM ERROR {error} update={update}")
         except TimedOut:
             # handle slow connection problems
-            self.__logger.warning("TELEGRAM ERROR {} update={}".format(error, update))
+            self.__logger.warning(f"TELEGRAM ERROR {error} update={update}")
         except NetworkError:
             # handle other connection problems
-            self.__logger.warning("TELEGRAM ERROR {} update={}".format(error, update))
+            self.__logger.warning(f"TELEGRAM ERROR {error} update={update}")
         except ChatMigrated as _:
             # the chat_id of a group has changed, use e.new_chat_id instead
-            self.__logger.warning("TELEGRAM ERROR {} update={}".format(error, update))
+            self.__logger.warning(f"TELEGRAM ERROR {error} update={update}")
         except TelegramError:
-            self.__logger.warning("TELEGRAM ERROR {} update={}".format(error, update))
+            self.__logger.warning(f"TELEGRAM ERROR {error} update={update}")
             # handle all other telegram related errors
 
     def _live_report(self):
@@ -311,51 +300,20 @@ class InstaPyTelegramBot:
 
         sessional_run_time = self.instapy_session.run_time()
         run_time_info = (
-            "{} seconds".format(sessional_run_time)
+            f"{sessional_run_time} seconds"
             if sessional_run_time < 60
-            else "{} minutes".format(truncate_float(sessional_run_time / 60, 2))
+            else f"{truncate_float(sessional_run_time / 60, 2)} minutes"
             if sessional_run_time < 3600
-            else "{} hours".format(truncate_float(sessional_run_time / 60 / 60, 2))
+            else f"{truncate_float(sessional_run_time / 60 / 60, 2)} hours"
         )
-        run_time_msg = "[Session lasted {}]".format(run_time_info)
 
-        if any(stat for stat in stats):
-            return (
-                "Sessional Live Report:\n"
-                "|> LIKED {} images\n"
-                "|> ALREADY LIKED: {}\n"
-                "|> COMMENTED on {} images\n"
-                "|> FOLLOWED {} users\n"
-                "|> ALREADY FOLLOWED: {}\n"
-                "|> UNFOLLOWED {} users\n"
-                "|> LIKED {} comments\n"
-                "|> REPLIED to {} comments\n"
-                "|> INAPPROPRIATE images: {}\n"
-                "|> NOT VALID users: {}\n"
-                "|> WATCHED {} story(ies)\n"
-                "|> WATCHED {} reel(s)\n"
-                "\n{}".format(
-                    self.instapy_session.liked_img,
-                    self.instapy_session.already_liked,
-                    self.instapy_session.commented,
-                    self.instapy_session.followed,
-                    self.instapy_session.already_followed,
-                    self.instapy_session.unfollowed,
-                    self.instapy_session.liked_comments,
-                    self.instapy_session.replied_to_comments,
-                    self.instapy_session.inap_img,
-                    self.instapy_session.not_valid_users,
-                    self.instapy_session.stories_watched,
-                    self.instapy_session.reels_watched,
-                    run_time_msg,
-                )
-            )
+        run_time_msg = f"[Session lasted {run_time_info}]"
+
+        if any(stats):
+            return f"Sessional Live Report:\n|> LIKED {self.instapy_session.liked_img} images\n|> ALREADY LIKED: {self.instapy_session.already_liked}\n|> COMMENTED on {self.instapy_session.commented} images\n|> FOLLOWED {self.instapy_session.followed} users\n|> ALREADY FOLLOWED: {self.instapy_session.already_followed}\n|> UNFOLLOWED {self.instapy_session.unfollowed} users\n|> LIKED {self.instapy_session.liked_comments} comments\n|> REPLIED to {self.instapy_session.replied_to_comments} comments\n|> INAPPROPRIATE images: {self.instapy_session.inap_img}\n|> NOT VALID users: {self.instapy_session.not_valid_users}\n|> WATCHED {self.instapy_session.stories_watched} story(ies)\n|> WATCHED {self.instapy_session.reels_watched} reel(s)\n\n{run_time_msg}"
+
         else:
-            return (
-                "Sessional Live Report:\n"
-                "|> No any statistics to show\n"
-                "\n{}".format(run_time_msg)
-            )
+            return f"Sessional Live Report:\n|> No any statistics to show\n\n{run_time_msg}"
 
     def end(self):
         """

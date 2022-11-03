@@ -48,10 +48,9 @@ def bypass_suspicious_login(
             )
         except NoSuchElementException:
             logger.warning(
-                "Unable to choose ({}) option to bypass the challenge".format(
-                    bypass_security_challenge_using.upper()
-                )
+                f"Unable to choose ({bypass_security_challenge_using.upper()}) option to bypass the challenge"
             )
+
 
     if bypass_security_challenge_using == "email":
         try:
@@ -63,10 +62,9 @@ def bypass_suspicious_login(
             )
         except NoSuchElementException:
             logger.warning(
-                "Unable to choose ({}) option to bypass the challenge".format(
-                    bypass_security_challenge_using.upper()
-                )
+                f"Unable to choose ({bypass_security_challenge_using.upper()}) option to bypass the challenge"
             )
+
 
     # click on your option
     (ActionChains(browser).move_to_element(option).click().perform())
@@ -85,11 +83,11 @@ def bypass_suspicious_login(
 
     logger.info("Instagram detected an unusual login attempt")
     logger.info('Check Instagram App for "Suspicious Login attempt" prompt')
-    logger.info("A security code was sent to your {}".format(option_text))
+    logger.info(f"A security code was sent to your {option_text}")
 
     security_code = None
     try:
-        path = "{}state.json".format(logfolder)
+        path = f"{logfolder}state.json"
         data = {}
         # check if file exists and has content
         if os.path.isfile(path) and os.path.getsize(path) > 0:
@@ -100,7 +98,7 @@ def bypass_suspicious_login(
         # update connection state
         security_code = data["challenge"]["security_code"]
     except Exception:
-        logger.info("Security Code not present in {}state.json file".format(logfolder))
+        logger.info(f"Security Code not present in {logfolder}state.json file")
 
     if security_code is None:
         security_code = input("Type the security code here: ")
@@ -245,9 +243,10 @@ def login_user(
 
     # Hotfix - this check crashes more often than not -- plus in not necessary,
     # I can verify my own connection
-    if want_check_browser:
-        if not check_browser(browser, logfolder, logger, proxy_address):
-            return False
+    if want_check_browser and not check_browser(
+        browser, logfolder, logger, proxy_address
+    ):
+        return False
 
     ig_homepage = "https://www.instagram.com"
     web_address_navigator(browser, ig_homepage)
@@ -270,7 +269,7 @@ def login_user(
 
         sleep(4)
         cookie_loaded = True
-        logger.info("- Cookie file for user '{}' loaded...".format(username))
+        logger.info(f"- Cookie file for user '{username}' loaded...")
 
         # force refresh after cookie load or check_authorization() will FAIL
         reload_webpage(browser)
@@ -300,8 +299,9 @@ def login_user(
     # so go create a new cookie.
     if cookie_loaded:
         logger.warning(
-            "- Issue with cookie for user '{}'. Creating new cookie...".format(username)
+            f"- Issue with cookie for user '{username}'. Creating new cookie..."
         )
+
 
         # Error could be faced due to "<button class="sqdOP L3NKy y3zKF"
         # type="button"> Cookie could not be loaded" or similar.
@@ -323,12 +323,11 @@ def login_user(
             # NF: start
             if isinstance(e, WebDriverException):
                 logger.exception(
-                    "Error occurred while deleting cookies from web browser!\n\t{}".format(
-                        str(e).encode("utf-8")
-                    )
+                    f'Error occurred while deleting cookies from web browser!\n\t{str(e).encode("utf-8")}'
                 )
+
             return False
-            # NF: end
+                    # NF: end
 
     web_address_navigator(browser, ig_homepage)
 
@@ -353,11 +352,9 @@ def login_user(
                 )
             except NoSuchElementException as e:
                 # NF: start
-                logger.exception(
-                    "Login A/B test failed!\n\t{}".format(str(e).encode("utf-8"))
-                )
+                logger.exception(f'Login A/B test failed!\n\t{str(e).encode("utf-8")}')
                 return False
-                # NF: end
+                            # NF: end
 
     if login_elem is not None:
         try:
@@ -524,28 +521,26 @@ def login_user(
 
     # Check if user is logged-in (If there's two 'nav' elements)
     nav = browser.find_element(By.XPATH, read_xpath(login_user.__name__, "nav"))
-    if nav is not None:
-        # create cookie for username and save it
-        cookies_list = browser.get_cookies()
-
-        for cookie in cookies_list:
-            if "sameSite" in cookie and cookie["sameSite"] == "None":
-                cookie["sameSite"] = "Strict"
-
-        try:
-            # Open the cookie file to store the data
-            with open(cookie_file, "wb") as cookie_f_handler:
-                pickle.dump(cookies_list, cookie_f_handler)
-
-        except pickle.PicklingError:
-            # Next time, cookie will be created for the session so we are safe
-            logger.warning("- Browser cookie list could not be saved to your local...")
-
-        finally:
-            return True
-
-    else:
+    if nav is None:
         return False
+    # create cookie for username and save it
+    cookies_list = browser.get_cookies()
+
+    for cookie in cookies_list:
+        if "sameSite" in cookie and cookie["sameSite"] == "None":
+            cookie["sameSite"] = "Strict"
+
+    try:
+        # Open the cookie file to store the data
+        with open(cookie_file, "wb") as cookie_f_handler:
+            pickle.dump(cookies_list, cookie_f_handler)
+
+    except pickle.PicklingError:
+        # Next time, cookie will be created for the session so we are safe
+        logger.warning("- Browser cookie list could not be saved to your local...")
+
+    finally:
+        return True
 
 
 def dismiss_get_app_offer(browser, logger):
@@ -553,12 +548,9 @@ def dismiss_get_app_offer(browser, logger):
     offer_elem = read_xpath(dismiss_get_app_offer.__name__, "offer_elem")
     dismiss_elem = read_xpath(dismiss_get_app_offer.__name__, "dismiss_elem")
 
-    # wait a bit and see if the 'Get App' offer rises up
-    offer_loaded = explicit_wait(
+    if offer_loaded := explicit_wait(
         browser, "VOEL", [offer_elem, "XPath"], logger, 5, False
-    )
-
-    if offer_loaded:
+    ):
         dismiss_elem = browser.find_element(By.XPATH, dismiss_elem)
         click_element(browser, dismiss_elem)
 
@@ -570,12 +562,9 @@ def dismiss_notification_offer(browser, logger):
         dismiss_notification_offer.__name__, "dismiss_elem_loc"
     )
 
-    # wait a bit and see if the 'Turn on Notifications' offer rises up
-    offer_loaded = explicit_wait(
+    if offer_loaded := explicit_wait(
         browser, "VOEL", [offer_elem_loc, "XPath"], logger, 4, False
-    )
-
-    if offer_loaded:
+    ):
         dismiss_elem = browser.find_element(By.XPATH, dismiss_elem_loc)
         click_element(browser, dismiss_elem)
 
@@ -586,11 +575,9 @@ def dismiss_save_information(browser, logger):
     offer_elem_loc = read_xpath(dismiss_save_information.__name__, "offer_elem_loc")
     dismiss_elem_loc = read_xpath(dismiss_save_information.__name__, "dismiss_elem_loc")
 
-    offer_loaded = explicit_wait(
+    if offer_loaded := explicit_wait(
         browser, "VOEL", [offer_elem_loc, "XPath"], logger, 4, False
-    )
-
-    if offer_loaded:
+    ):
         # When prompted chose "Not Now", we don't know if saving information
         # contributes or stimulate IG to target the acct, it would be better to
         # just pretend that we are using IG in different browsers.
@@ -628,67 +615,64 @@ def two_factor_authentication(browser, logger, security_codes):
     # Wait until page is loaded after user and password were introduced
     sleep(random.randint(3, 5))
 
-    if "two_factor" in browser.current_url:
-
-        logger.info("- Two Factor Authentication is enabled...")
-
-        # Chose one code from the security_codes list
-        # 0000 is used if no codes were provided in constructor.
-        code = random.choice(security_codes)
-
-        try:
-            # Check Security code is numeric
-            int(code)
-
-            verification_code = read_xpath(login_user.__name__, "verification_code")
-            explicit_wait(browser, "VOEL", [verification_code, "XPath"], logger)
-
-            security_code = browser.find_element(By.XPATH, verification_code)
-
-            #  Confirm blue button
-            confirm = browser.find_element(
-                By.XPATH, read_xpath(login_user.__name__, "confirm")
-            )
-
-            (
-                ActionChains(browser)
-                .move_to_element(security_code)
-                .click()
-                .send_keys(code)
-                .perform()
-            )
-
-            sleep(random.randint(1, 3))
-
-            (
-                ActionChains(browser)
-                .move_to_element(confirm)
-                .click()
-                .send_keys(Keys.ENTER)
-                .perform()
-            )
-
-            # update server calls for both 'click' and 'send_keys' actions
-            for _ in range(2):
-                update_activity(browser, state=None)
-
-            sleep(random.randint(1, 3))
-
-        except NoSuchElementException as e:
-            # Unable to login to Instagram!
-            logger.warning(
-                "- Secuirty code could not be written!\n\t{}".format(
-                    str(e).encode("utf-8")
-                )
-            )
-        except ValueError:
-            # Unable to login to Instagram!
-            logger.warning("- Secuirty code provided is not a number")
-    else:
+    if "two_factor" not in browser.current_url:
         # Two Factor Authentication is not enabled or the security code has
         # already been entered in previous session.
         # Return None and login to Instagram!
         return
+    logger.info("- Two Factor Authentication is enabled...")
+
+    # Chose one code from the security_codes list
+    # 0000 is used if no codes were provided in constructor.
+    code = random.choice(security_codes)
+
+    try:
+        # Check Security code is numeric
+        int(code)
+
+        verification_code = read_xpath(login_user.__name__, "verification_code")
+        explicit_wait(browser, "VOEL", [verification_code, "XPath"], logger)
+
+        security_code = browser.find_element(By.XPATH, verification_code)
+
+        #  Confirm blue button
+        confirm = browser.find_element(
+            By.XPATH, read_xpath(login_user.__name__, "confirm")
+        )
+
+        (
+            ActionChains(browser)
+            .move_to_element(security_code)
+            .click()
+            .send_keys(code)
+            .perform()
+        )
+
+        sleep(random.randint(1, 3))
+
+        (
+            ActionChains(browser)
+            .move_to_element(confirm)
+            .click()
+            .send_keys(Keys.ENTER)
+            .perform()
+        )
+
+        # update server calls for both 'click' and 'send_keys' actions
+        for _ in range(2):
+            update_activity(browser, state=None)
+
+        sleep(random.randint(1, 3))
+
+    except NoSuchElementException as e:
+            # Unable to login to Instagram!
+        logger.warning(
+            f'- Secuirty code could not be written!\n\t{str(e).encode("utf-8")}'
+        )
+
+    except ValueError:
+        # Unable to login to Instagram!
+        logger.warning("- Secuirty code provided is not a number")
 
 
 def accept_igcookie_dialogue(browser, logger):
@@ -696,11 +680,9 @@ def accept_igcookie_dialogue(browser, logger):
 
     offer_elem_loc = read_xpath(accept_igcookie_dialogue.__name__, "accept_button")
 
-    offer_loaded = explicit_wait(
+    if offer_loaded := explicit_wait(
         browser, "VOEL", [offer_elem_loc, "XPath"], logger, 4, False
-    )
-
-    if offer_loaded:
+    ):
         logger.info("- Accepted IG cookies by default...")
         accept_elem = browser.find_element(By.XPATH, offer_elem_loc)
         click_element(browser, accept_elem)

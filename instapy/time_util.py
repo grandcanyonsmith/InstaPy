@@ -1,4 +1,5 @@
 """Helper module to handle time related stuff"""
+
 from time import sleep as original_sleep
 from datetime import datetime
 from random import gauss
@@ -8,7 +9,7 @@ from random import uniform
 # i.e. random time will be in the range: TIME +/- STDEV %
 STDEV = 0.5
 sleep_percentage = 1
-sleep_percentage = sleep_percentage * uniform(0.9, 1.1)
+sleep_percentage *= uniform(0.9, 1.1)
 
 
 def randomize_time(mean):
@@ -57,6 +58,4 @@ def get_time(labels):
         elif label == "today":
             results.append(datetime.now().strftime("%Y-%m-%d"))
 
-    results = results if len(results) > 1 else results[0]
-
-    return results
+    return results if len(results) > 1 else results[0]
